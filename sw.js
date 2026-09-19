@@ -1,4 +1,4 @@
-const CACHE='pres-cost-v14';
+const CACHE='pres-cost-v15';
 const ASSETS=['./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',function(e){
@@ -19,11 +19,17 @@ self.addEventListener('activate',function(e){
   self.clients.claim();
 });
 
+// Estrategia "red primero": siempre intenta traer la versión más nueva de internet.
+// Solo usa la copia guardada (caché) si no hay conexión. Así las actualizaciones futuras
+// se ven de inmediato, sin depender de subir manualmente el número de versión cada vez.
 self.addEventListener('fetch',function(e){
   e.respondWith(
-    caches.match(e.request).then(function(cached){
-      return cached || fetch(e.request).catch(function(){
-        return caches.match('./index.html');
+    fetch(e.request).then(function(fresh){
+      caches.open(CACHE).then(function(cache){cache.put(e.request,fresh.clone());});
+      return fresh;
+    }).catch(function(){
+      return caches.match(e.request).then(function(cached){
+        return cached || caches.match('./index.html');
       });
     })
   );
